@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:teslo_shop/features/auth/presentation/providers/auth_provider.dart';
+import 'package:teslo_shop/features/auth/presentation/providers/providers.dart';
 import 'package:teslo_shop/features/shared/shared.dart';
 
 
@@ -47,12 +50,29 @@ class LoginScreen extends StatelessWidget {
     );
   }
 }
-
-class _LoginForm extends StatelessWidget {
+/*Se transforma en ConsumerWidget para poder usar el Provider y añadimos
+  Widget ref para poder usar nuestros providers.
+*/
+class _LoginForm extends ConsumerWidget {
   const _LoginForm();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+
+    //Watch porque hay que estar pendiente de los cambios, esto me da valor del State no el notifier
+    final loginForm= ref.watch(loginFormProvider);
+    
+    
+    void showSnackBar(BuildContext context, String errorMessage) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage))
+      );
+    }
+    ref.listen(authProvider, (previous, next) {
+      if(next.errorMessage.isEmpty)return;
+      showSnackBar(context,next.errorMessage);
+    });
 
     final textStyles = Theme.of(context).textTheme;
 
@@ -64,15 +84,24 @@ class _LoginForm extends StatelessWidget {
           Text('Login', style: textStyles.titleLarge ),
           const SizedBox( height: 90 ),
 
-          const CustomTextFormField(
+          CustomTextFormField(
             label: 'Correo',
             keyboardType: TextInputType.emailAddress,
+            //Read porque en eventos no se debe de poner watch 
+            onChanged:ref.read(loginFormProvider.notifier).onEmailChange,
+              
+            //accedemos al email del state y dentro del email a su errormessage  
+            errorMessage: loginForm.isFormPosted ? loginForm.email.errorMessage : null,
           ),
           const SizedBox( height: 30 ),
 
-          const CustomTextFormField(
+          CustomTextFormField(
             label: 'Contraseña',
             obscureText: true,
+            onChanged:ref.read(loginFormProvider.notifier).onPasswordChange,
+            onSubmit: (_) => ref.read(loginFormProvider.notifier).onFormSubmit(),
+            //accedemos al email del state y dentro del email a su errormessage  
+            errorMessage: loginForm.isFormPosted ? loginForm.password.errorMessage : null,
           ),
     
           const SizedBox( height: 30 ),
@@ -83,9 +112,8 @@ class _LoginForm extends StatelessWidget {
             child: CustomFilledButton(
               text: 'Ingresar',
               buttonColor: Colors.black,
-              onPressed: (){
-
-              },
+              onPressed: loginForm.isPosting ? null :ref.read(loginFormProvider.notifier).onFormSubmit
+             
             )
           ),
 

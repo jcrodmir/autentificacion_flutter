@@ -1,11 +1,23 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:teslo_shop/config/router/app_router_notifier.dart';
 import 'package:teslo_shop/features/auth/auth.dart';
+import 'package:teslo_shop/features/auth/presentation/providers/auth_provider.dart';
 import 'package:teslo_shop/features/products/products.dart';
 
-final appRouter = GoRouter(
-  initialLocation: '/',
+final goRouterProvider= Provider((ref){
+
+  final goRouterNotifier = ref.read(goRouterNotifierProvider);
+
+  return  GoRouter(
+  initialLocation: '/splash',
+  refreshListenable: goRouterNotifier,
   routes: [
 
+    GoRoute(
+      path: '/splash',
+      builder: (context, state) => const CheckOutStatusScreen(),
+    ),
     ///* Auth Routes
     GoRoute(
       path: '/login',
@@ -21,6 +33,36 @@ final appRouter = GoRouter(
       path: '/',
       builder: (context, state) => const ProductsScreen(),
     ),
+    //product card
+    GoRoute(
+      path: '/product/:id',
+      builder: (context, state) =>  ProductScreen(
+        productId: state.params['id'] ?? 'no-id',
+      ),
+    ),
   ],
-  ///! TODO: Bloquear si no se está autenticado de alguna manera
+
+  redirect: (context, state) {
+      
+      final isGoingTo = state.subloc;
+      final authStatus = goRouterNotifier.authStatus;
+
+      if ( isGoingTo == '/splash' && authStatus == AuthStatus.cheking ) return null;
+
+      if ( authStatus == AuthStatus.noAuthenticated ) {
+        if ( isGoingTo == '/login' || isGoingTo == '/register' ) return null;
+
+        return '/login';
+      }
+
+      if ( authStatus == AuthStatus.authenticated ) {
+        if ( isGoingTo == '/login' || isGoingTo == '/register' || isGoingTo == '/splash' ){
+           return '/';
+        }
+      }
+
+
+      return null;
+    },
 );
+});
