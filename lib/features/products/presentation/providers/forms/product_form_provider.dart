@@ -9,7 +9,7 @@ import 'package:teslo_shop/features/products/presentation/providers/providers.da
 import '../../../../shared/shared.dart';
 
 //El family es para que yo pueda mandar el producto
-final productFormProvider = StateNotifierProvider.autoDispose.family<ProductFormNotifier,ProductFormState,Product>(
+final  productFormProvider = StateNotifierProvider.autoDispose.family<ProductFormNotifier,ProductFormState,Product>(
   (ref,product){
 
     //final createUpdateCallback = ref.watch(productsRepositoryProvider).createUpdate;
@@ -102,6 +102,12 @@ class ProductFormNotifier extends StateNotifier<ProductFormState>{
         Price.dirty(state.price.value),
         Stock.dirty(state.inStock.value),
       ])
+    );
+  }
+
+  void updateProductImage(String path){
+    state= state.copyWith(
+      imagenes:[path, ...state.imagenes]
     );
   }
     void onSlugChanged(String value){

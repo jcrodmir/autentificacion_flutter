@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:teslo_shop/features/products/domain/entities/product.dart';
 import 'package:teslo_shop/features/products/presentation/providers/forms/product_form_provider.dart';
 import 'package:teslo_shop/features/products/presentation/providers/product_provider.dart';
+import 'package:teslo_shop/features/shared/shared.dart';
 import 'package:teslo_shop/features/shared/widgets/custom_product_field.dart';
 import 'package:teslo_shop/features/shared/widgets/fullscreen_loader.dart';
 
@@ -31,7 +34,21 @@ class ProductScreen extends ConsumerWidget {
         appBar: AppBar(
           title: Text("Editar Producto"),
           actions: [
-            IconButton(onPressed: (){}, icon: const Icon(Icons.save_as_outlined),)
+            IconButton(onPressed: ()async{
+              final photoPath = await CameraGalleryServiceImpl().selectPhoto();
+              if(photoPath == null) return;
+
+              ref.read(productFormProvider(producto!).notifier).updateProductImage(photoPath);
+             
+
+              }, icon: const Icon(Icons.photo_library_outlined),),
+            IconButton(onPressed: ()async{
+              final photoPath = await CameraGalleryServiceImpl().takePhoto();
+              if(photoPath == null) return;
+              ref.read(productFormProvider(producto!).notifier).updateProductImage(photoPath);
+              photoPath;
+
+            }, icon: const Icon(Icons.camera_alt_outlined),)
           ],
         ),
         body:productState.isLoading ? const FullscreenLoader():_ProductView(product: productState.product!),
@@ -246,20 +263,36 @@ class _ImageGallery extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    if(images.isEmpty){
+      return ClipRRect(
+            borderRadius: const BorderRadius.all(Radius.circular(20)),
+            child: Image.asset('assets/images/no-image.jpg', fit: BoxFit.cover ));
+
+    }
+
     return PageView(
       scrollDirection: Axis.horizontal,
       controller: PageController(
         viewportFraction: 0.5
       ),
-      children: images.isEmpty
-        ? [ ClipRRect(
-            borderRadius: const BorderRadius.all(Radius.circular(20)),
-            child: Image.asset('assets/images/no-image.jpg', fit: BoxFit.cover )) 
-        ]
-        : images.map((e){
-          return ClipRRect(
-            borderRadius: const BorderRadius.all(Radius.circular(20)),
-            child: Image.network(e, fit: BoxFit.cover,),
+      children: images.map((image){
+
+          late ImageProvider imageProvider;
+          if(image.startsWith("http")){
+            imageProvider= NetworkImage(image);
+          } else{
+            imageProvider= FileImage(File(image) );
+          }
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.all(Radius.circular(20)),
+              child: FadeInImage(
+                fit: BoxFit.cover,
+                placeholder: const AssetImage("assets/loaders/bottle-loader.gif"), 
+                image: imageProvider),
+            ),
           );
       }).toList(),
     );
